@@ -6,8 +6,12 @@ class ApiResponse {
     if (meta) {
       this.meta = meta;
     }
-    this.data = data;
-    this.errors = errors || [];
+    if (data && data !== null) {
+      this.data = data;
+    }
+    if (errors && errors.length > 0) {
+      this.errors = errors;
+    }
   }
 }
 export default ApiResponse;

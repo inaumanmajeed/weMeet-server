@@ -10,17 +10,17 @@ export const app = express();
 
 // Middleware
 app.set('trust proxy', 1);
-const allowedOrigins = CORS_ORIGIN.split(',').map((origin) => origin.trim());
 app.use(express.json({ limit: LIMIT }));
 app.use(express.urlencoded({ extended: true, limit: LIMIT }));
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors({ origin: CORS_ORIGIN }));
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(cookieParser());
-app.use(apiErrorHandler);
 
 // Routes
-
 import healthRoutes from './routes/health.js';
 
 app.use(`${BASE_URL}/`, healthRoutes);
+
+// Error handling middleware should be last
+app.use(apiErrorHandler);
