@@ -17,10 +17,14 @@ app.use(morgan('dev'));
 app.use(helmet());
 app.use(cookieParser());
 
-// Routes
-import healthRoutes from './routes/health.js';
+// ====================== { Routes } ======================
 
-app.use(`${BASE_URL}/`, healthRoutes);
+// ====================== { Health Check Route } ======================
+import healthRoutes from './routes/health.js';
+app.use(BASE_URL, healthRoutes);
+// ====================== { Auth Routes } ======================
+import authRoutes from './routes/auth.routes.js';
+app.use(`${BASE_URL}/auth`, authRoutes);
 
 // Error handling middleware should be last
 app.use(apiErrorHandler);

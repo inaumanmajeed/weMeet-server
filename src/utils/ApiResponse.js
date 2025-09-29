@@ -1,9 +1,9 @@
 class ApiResponse {
-  constructor(status, message, data = null, meta, errors) {
+  constructor(status, message, data = null, meta = null, errors = null) {
     this.status = status;
     this.success = status >= 200 && status < 300;
     this.message = message;
-    if (meta) {
+    if (meta && meta !== null && Object.keys(meta).length > 0) {
       this.meta = meta;
     }
     if (data && data !== null) {

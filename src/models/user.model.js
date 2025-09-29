@@ -6,7 +6,7 @@ import {
   REFRESH_TOKEN_SECRET,
   ACCESS_EXPIRY,
   REFRESH_EXPIRY,
-} from '../constants.js';
+} from '../../constants.js';
 
 const userSchema = new Schema(
   {
@@ -23,6 +23,10 @@ const userSchema = new Schema(
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
+    },
+    avatar: {
+      type: String,
+      default: null,
     },
     password: {
       type: String,
@@ -50,6 +54,8 @@ const userSchema = new Schema(
         delete ret.password;
         delete ret.refreshToken;
         delete ret.accessToken;
+        delete ret.createdAt;
+        delete ret.updatedAt;
         return ret;
       },
     },

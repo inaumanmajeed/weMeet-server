@@ -2,87 +2,80 @@ import asyncHandler from '../utils/asyncHandler.js';
 import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import { User } from '../models/user.model.js';
-import { cookieOptions } from '../config.js';
-
-// Method to generate refresh token and access token
-const generateAccessAndRefreshTokens = async (userId) => {
-  try {
-    // fetch user from userId
-    const user = await User.findById(userId);
-    // generate access token and refresh token
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    // save refresh token in user document
-    user.refreshToken = refreshToken;
-    user.accessToken = accessToken;
-    await user.save({ validateBeforeSave: false });
-    // return both tokens
-    return { accessToken, refreshToken };
-  } catch (error) {
-    console.log('🚀 ~ generateAccessAndRefreshTokens ~ error:', error);
-    throw new ApiError(500, 'Error generating tokens');
-  }
-};
+import { cookieOptions } from '../config/config.js';
+import crypto from 'crypto';
+import {
+  ADMIN_EMAIL,
+  GRAVATAR_API_KEY,
+  GRAVATAR_BASE_URL,
+} from '../../constants.js';
+import { generateAccessAndRefreshTokens } from '../utils/generateAccessAndRefreshTokens.js';
 
 const registerUser = asyncHandler(async (req, res) => {
-  // extract user data from request body
-  const { userName, name, email, password, phoneNumber } = req.body;
+  const { name, email, password } = req.body;
 
-  // Validate required fields
-  if (
-    [userName, name, email, password, phoneNumber].some(
-      (field) => field?.trim() === ''
-    )
-  ) {
+  if ([name, email, password].some((field) => field?.trim() === '')) {
     throw new ApiError(400, 'All fields are required');
   }
-
-  // Check if user already exists
-  const existingUser = await User.findOne({
-    $or: [{ email }, { userName }, { phoneNumber }],
-  });
+  const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new ApiError(400, 'User already exists');
   }
 
-  // Create new user
   const user = await User.create({
-    userName,
     name,
     email,
     password,
-    phoneNumber,
   });
 
-  // validate user creation
+  const hash = crypto.createHash('sha256').update(email).digest('hex');
+  const response = await fetch(`${GRAVATAR_BASE_URL}/profiles/${hash}`, {
+    headers: {
+      Authorization: `Basic ${GRAVATAR_API_KEY}`,
+    },
+  });
+  if (response.status === 200) {
+    const data = await response.json();
+    if (data && data.avatar_url) {
+      user.avatar = `${data.avatar_url}?s=1040`;
+    }
+    await user.save({ validateBeforeSave: false });
+  }
+
+  if (email === ADMIN_EMAIL) {
+    user.isAdmin = true;
+    await user.save({ validateBeforeSave: false });
+  }
+
   const createdUser = await User.findById(user._id);
   if (!createdUser) {
     throw new ApiError(500, 'User creation failed');
   }
 
-  // Send success response
   return res.status(201).json(
-    new ApiResponse(201, `${createdUser.userName} registered successfully`, {
+    new ApiResponse(201, `${createdUser.name} registered successfully`, {
       user: createdUser,
     })
   );
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, userName, password } = req.body;
-  // Validate required fields
-  if ((!(email || userName) && !password) || password.trim() === '') {
-    throw new ApiError(400, 'Email or username and password are required');
+  const { email, password } = req.body;
+
+  if (!email || email.trim() === '') {
+    throw new ApiError(400, 'Email is required');
   }
-  // Find user by email or username
-  const user = await User.findOne({
-    $or: [{ email }, { userName }],
-  });
+  if (!password || password.trim() === '') {
+    throw new ApiError(400, 'Password is required');
+  }
+
+  const user = await User.findOne({ email });
   if (!user) {
-    throw new ApiError(404, 'Invalid email/username');
+    throw new ApiError(404, 'Invalid email address');
   }
-  // Check password
+
   const isPasswordValid = await user.isPasswordCorrect(password);
+
   if (!isPasswordValid) {
     throw new ApiError(401, 'Invalid password');
   }
@@ -90,24 +83,28 @@ const loginUser = asyncHandler(async (req, res) => {
     user._id
   );
 
-  // here we can call the database to fetch the refresh token along with the latest user data or we can update the user document with the new refresh token
+  user.refreshToken = refreshToken;
+  user.accessToken = accessToken;
+  await user.save({ validateBeforeSave: false });
 
-  // calling the database to fetch the user data
   const loggedInUser = await User.findById(user._id);
 
-  // updating the user document with the new refresh token
-  // user.refreshToken = refreshToken;
-  // console.log('🚀 ~ loginUser ~ user:', user);
   return res
     .status(200)
     .cookie('accessToken', accessToken, cookieOptions)
     .cookie('refreshToken', refreshToken, cookieOptions)
     .json(
-      new ApiResponse(200, `${loggedInUser.userName} logged in successfully`, {
-        user: loggedInUser,
-        accessToken,
-        refreshToken,
-      })
+      new ApiResponse(
+        200,
+        `${
+          loggedInUser.name.charAt(0).toUpperCase() + loggedInUser.name.slice(1)
+        } logged in successfully`,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        }
+      )
     );
 });
 
@@ -132,13 +129,19 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const reassignAccessToken = asyncHandler(async (req, res) => {
-  // This function is used to reassign access token when the user is already logged in and the access token is expired.
-  // It will generate a new access token and return it to the user.
   if (!req.user) {
     throw new ApiError(401, '👮🏻‍♂️ Unauthorized Access');
   }
   const { accessToken: NewAccessToken, refreshToken: NewRefreshToken } =
     await generateAccessAndRefreshTokens(req.user.id);
+
+  req.user.accessToken = NewAccessToken;
+  req.user.refreshToken = NewRefreshToken;
+  const response = await req.user.save({ validateBeforeSave: false });
+
+  if (!response) {
+    throw new ApiError(500, 'Failed to reassign access token');
+  }
 
   return res
     .status(200)
