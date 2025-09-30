@@ -4,11 +4,7 @@ import ApiResponse from '../utils/ApiResponse.js';
 import { User } from '../models/user.model.js';
 import { cookieOptions } from '../config/config.js';
 import crypto from 'crypto';
-import {
-  ADMIN_EMAIL,
-  GRAVATAR_API_KEY,
-  GRAVATAR_BASE_URL,
-} from '../../constants.js';
+import { ADMIN_EMAIL, GRAVATAR_API_KEY, GRAVATAR_BASE_URL } from '../../constants.js';
 import { generateAccessAndRefreshTokens } from '../utils/generateAccessAndRefreshTokens.js';
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -79,9 +75,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     throw new ApiError(401, 'Invalid password');
   }
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
-  );
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
   user.refreshToken = refreshToken;
   user.accessToken = accessToken;
@@ -148,14 +142,10 @@ const reassignAccessToken = asyncHandler(async (req, res) => {
     .cookie('accessToken', NewAccessToken, cookieOptions)
     .cookie('refreshToken', NewRefreshToken, cookieOptions)
     .json(
-      new ApiResponse(
-        200,
-        'New access & refresh token generated successfully',
-        {
-          accessToken: NewAccessToken,
-          refreshToken: NewRefreshToken,
-        }
-      )
+      new ApiResponse(200, 'New access & refresh token generated successfully', {
+        accessToken: NewAccessToken,
+        refreshToken: NewRefreshToken,
+      })
     );
 });
 
