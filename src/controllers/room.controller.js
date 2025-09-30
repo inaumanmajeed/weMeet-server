@@ -1,6 +1,6 @@
 import { createRoom } from '../services/mediasoup.js';
 import Recording from '../models/recording.model.js';
-import { User } from '../models/user.model.js';
+// import { User } from '../models/user.model.js';
 import crypto from 'crypto';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -9,12 +9,14 @@ import Room from '../models/room.models.js';
 
 export const createRoomController = asyncHandler(async (req, res) => {
   const { id: userId } = req.user;
-  const { maxParticipants = 10, roomSettings = {} } = req.body;
+  // const {maxParticipants = 10, roomSettings = {} } = req.body;
+  const maxParticipants = 10;
+  const roomSettings = {};
 
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new ApiError(404, 'User not found');
-  }
+  // const user = await User.findById(userId);
+  // if (!user) {
+  //   throw new ApiError(404, 'User not found');
+  // }
 
   const roomId = crypto
     .createHash('sha256')
@@ -24,22 +26,20 @@ export const createRoomController = asyncHandler(async (req, res) => {
 
   let room = await Room.findOne({ roomId });
   if (room) {
-    // If room exists but is inactive, reactivate it
     if (!room.isActive) {
       room.isActive = true;
       room.participants = [userId];
-      room.destroyAt = new Date(Date.now() + 50 * 60 * 1000); // 50 minutes from now
+      room.destroyAt = new Date(Date.now() + 50 * 60 * 1000);
       await room.save();
     }
   } else {
     const mediasoupRoom = await createRoom(roomId);
 
-    // Default room settings
     const defaultSettings = {
-      audioEnabled: true,
-      videoEnabled: true,
-      screenShareEnabled: true,
-      chatEnabled: true,
+      audioEnabled: false,
+      videoEnabled: false,
+      screenShareEnabled: false,
+      chatEnabled: false,
       recordingAllowed: false,
       ...roomSettings,
     };
@@ -50,7 +50,7 @@ export const createRoomController = asyncHandler(async (req, res) => {
       participants: [userId],
       maxParticipants,
       roomSettings: defaultSettings,
-      destroyAt: new Date(Date.now() + 50 * 60 * 1000), // 50 minutes from now
+      destroyAt: new Date(Date.now() + 50 * 60 * 1000),
     });
     await room.save();
   }
@@ -77,48 +77,17 @@ export const createRoomController = asyncHandler(async (req, res) => {
 
 export const joinRoomController = asyncHandler(async (req, res) => {
   const { id: userId } = req.user;
-  const { room, isAdmin } = req;
+  const { room } = req;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new ApiError(404, 'User not found');
-  }
-
-  // Check if room is active
   if (!room.isActive) {
     throw new ApiError(400, 'Room is not active');
   }
 
-  // Check max participants limit
   if (
     room.participants.length >= room.maxParticipants &&
     !room.participants.includes(userId)
   ) {
     throw new ApiError(400, 'Room is full');
-  }
-
-  if (isAdmin) {
-    return res.status(200).json(
-      new ApiResponse(200, 'Room creator is already in the room', {
-        roomId: room.roomId,
-        participants: room.participants.length,
-        maxParticipants: room.maxParticipants,
-        roomSettings: room.roomSettings,
-        expiresAt: room.destroyAt,
-      })
-    );
-  }
-
-  if (room.participants.includes(userId)) {
-    return res.status(200).json(
-      new ApiResponse(200, 'Already in room', {
-        roomId: room.roomId,
-        participants: room.participants.length,
-        maxParticipants: room.maxParticipants,
-        roomSettings: room.roomSettings,
-        expiresAt: room.destroyAt,
-      })
-    );
   }
 
   room.participants.push(userId);
