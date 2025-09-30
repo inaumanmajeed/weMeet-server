@@ -18,14 +18,26 @@ app.use(morgan('dev'));
 app.use(helmet());
 app.use(cookieParser());
 
-// ====================== { Routes } ======================
+// ====================== { Routes Starts here } ======================
 
-// ====================== { Health Check Route } ======================
+// ---------------------- { Health Check Route } ----------------------
+
 import healthRoutes from './routes/health.js';
 app.use(BASE_URL, healthRoutes);
-// ====================== { Auth Routes } ======================
+
+// ---------------------- { Auth Routes } ----------------------
+
 import authRoutes from './routes/auth.routes.js';
 app.use(`${BASE_URL}/auth`, authRoutes);
+
+// ---------------------- { Meeting Routes } ----------------------
+
+import roomRoutes from './routes/room.routes.js';
+import recordingRoutes from './routes/recording.routes.js';
+app.use(`${BASE_URL}/room`, roomRoutes);
+app.use(`${BASE_URL}/recording`, recordingRoutes);
+
+// ====================== { Routes End here } ======================
 
 // Error handling middleware should be last
 app.use(apiErrorHandler);
