@@ -73,7 +73,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 };
 
 userSchema.methods.generateAccessToken = function () {
-  const payload = { id: this._id, username: this.username };
+  const payload = { id: this._id, name: this.name };
   const token = jwt.sign(payload, ACCESS_TOKEN_SECRET, {
     expiresIn: ACCESS_EXPIRY,
   });

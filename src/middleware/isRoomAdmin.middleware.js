@@ -1,4 +1,3 @@
-// middlewares/isRoomAdmin.js
 import Room from '../models/room.models.js';
 import asyncHandler from '../utils/asyncHandler.js';
 

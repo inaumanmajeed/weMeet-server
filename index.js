@@ -1,10 +1,25 @@
 import { connectToDatabase } from './src/db/index.js';
 import { PORT } from './constants.js';
 import { app } from './src/app.js';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { setupSocketHandlers } from './src/services/socketHandlers.js';
 
 connectToDatabase()
   .then(() => {
-    const server = app.listen(PORT, () => {
+    const server = createServer(app);
+    const io = new Server(server, {
+      cors: {
+        origin: process.env.CLIENT_URL || 'http://localhost:3000',
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
+    });
+
+    // Setup socket handlers
+    setupSocketHandlers(io);
+
+    server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
 
