@@ -32,10 +32,9 @@ app.use(`${BASE_URL}/auth`, authRoutes);
 
 // ---------------------- { Meeting Routes } ----------------------
 
-import roomRoutes from './routes/room.routes.js';
-import recordingRoutes from './routes/recording.routes.js';
-app.use(`${BASE_URL}/room`, roomRoutes);
-app.use(`${BASE_URL}/recording`, recordingRoutes);
+// Recording routes moved to socket events in socketHandlers.js
+// import recordingRoutes from './routes/recording.routes.js';
+// app.use(`${BASE_URL}/recording`, recordingRoutes);
 
 // ====================== { Routes End here } ======================
 

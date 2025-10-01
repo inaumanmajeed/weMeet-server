@@ -8,9 +8,17 @@ const RecordingSchema = new mongoose.Schema(
       {
         recordingId: { type: String, required: true },
         filePath: { type: String, required: true },
-        type: { type: String, enum: ['mp3', 'mp4'], required: true },
+        type: { type: String, enum: ['mp3', 'mp4', 'webm'], required: true },
+        status: {
+          type: String,
+          enum: ['recording', 'processing', 'completed', 'failed'],
+          default: 'recording',
+        },
         startedAt: { type: Date, default: Date.now },
         endedAt: { type: Date },
+        duration: { type: Number }, // in seconds
+        fileSize: { type: Number }, // in bytes
+        startedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       },
     ],
   },
